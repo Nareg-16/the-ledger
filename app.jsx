@@ -77,6 +77,10 @@ const NAV = [
   { id: "settings", label: "Settings", icon: "settings" },
 ];
 
+/* On phones only the daily tabs sit in the bottom bar;
+   the rest live under a "More" sheet. Desktop shows all seven. */
+const MOBILE_PRIMARY = ["overview", "income", "expenses", "goals"];
+
 function LockScreen({ payload, onUnlock }) {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
@@ -153,6 +157,7 @@ function App() {
   const passRef = useRef(null);          // in-memory passphrase while app lock is on
   const [month, setMonth] = useState(() => monthKeyOf(new Date()));
   const [tab, setTab] = useState("overview");
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const setState = setStateRaw;
 
@@ -425,12 +430,28 @@ function App() {
         </div>
 
         <nav className="tabbar">
-          {NAV.map((n) => (
-            <button key={n.id} className={tab === n.id ? "active" : ""} onClick={() => setTab(n.id)}>
+          {NAV.filter((n) => MOBILE_PRIMARY.includes(n.id)).map((n) => (
+            <button key={n.id} className={tab === n.id ? "active" : ""} onClick={() => { setTab(n.id); setMoreOpen(false); }}>
               <Icon name={n.icon} size={21} />{n.label}
             </button>
           ))}
+          <button className={!MOBILE_PRIMARY.includes(tab) || moreOpen ? "active" : ""} onClick={() => setMoreOpen((o) => !o)} aria-label="More pages">
+            <Icon name="more" size={21} />More
+          </button>
         </nav>
+
+        {moreOpen && (
+          <div className="sheet-scrim" onMouseDown={() => setMoreOpen(false)}>
+            <div className="more-sheet" onMouseDown={(e) => e.stopPropagation()}>
+              {NAV.filter((n) => !MOBILE_PRIMARY.includes(n.id)).map((n) => (
+                <button key={n.id} className={tab === n.id ? "active" : ""}
+                  onClick={() => { setTab(n.id); setMoreOpen(false); }}>
+                  <Icon name={n.icon} size={20} />{n.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {cloudLocked && (
           <CloudUnlockModal payload={cloudLocked}

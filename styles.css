@@ -518,6 +518,29 @@ textarea.input { height: auto; padding: 11px 13px; resize: vertical; min-height:
   background: var(--pos-soft); color: var(--pos);
 }
 
+/* mobile "More" bottom sheet */
+.sheet-scrim {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(8, 10, 20, 0.45); backdrop-filter: blur(2px);
+  animation: fade 0.18s ease;
+}
+.more-sheet {
+  position: fixed; left: 10px; right: 10px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 95; padding: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 18px; box-shadow: var(--shadow-lg);
+  animation: pop 0.22s cubic-bezier(.22,1,.36,1);
+}
+.more-sheet button {
+  display: flex; align-items: center; gap: 13px;
+  width: 100%; padding: 14px; border: 0; background: transparent;
+  border-radius: 12px; font-weight: 600; font-size: 15px;
+  color: var(--ink-soft); transition: 0.14s;
+}
+.more-sheet button:hover { background: var(--inset); color: var(--ink); }
+.more-sheet button.active { background: var(--gold-soft); color: var(--gold-deep); }
+
 /* lock screen */
 .lock-screen {
   min-height: 100vh; display: grid; place-items: center; padding: 24px;
