@@ -2,6 +2,24 @@
 
 A step-by-step plan for turning The Ledger into a multi-user app with login, cross-device sync, and (later) shared budgets — while **keeping the exact same front-end and still deploying it on Netlify**.
 
+> **Status: the app code is DONE** (branch `supabase-sync`): `sync.js`, `supabase-config.js`, and an Account & sync card in Settings. What's left is the dashboard setup below — about 15 minutes, no code.
+
+## ✅ Your setup checklist
+
+1. **Create the project** — [supabase.com](https://supabase.com) → New project. Name: `the-ledger`, region: `eu-central-1` (closest to Armenia), set a database password (save it somewhere, you rarely need it).
+2. **Create the table + security rules** — left sidebar → **SQL Editor** → New query → paste the SQL block from *Step 2* below → **Run**. It should say "Success. No rows returned."
+3. **Allow logins from your site** — left sidebar → **Authentication → URL Configuration**:
+   - Site URL: `https://the-ledgerbynar.netlify.app`
+   - Additional Redirect URLs: add `http://localhost:8742` (so login also works when testing locally)
+4. **Check email login is on** — **Authentication → Sign In / Providers**: "Email" should already be enabled by default. That's all the app needs (it uses passwordless magic links). Google login is optional and can be added any time later.
+5. **Copy your two keys** — **Project Settings → API**: copy the **Project URL** and the **anon public** key, and paste them into [supabase-config.js](supabase-config.js). Then commit and push (or paste them in the chat and Claude will wire them in).
+
+That's it. Once the keys are in and the branch is deployed, a new "Account & sync" card appears at the top of Settings.
+
+---
+
+The sections below are the original plan, kept as reference for how it works.
+
 ## Why Supabase fits this app
 
 Supabase is a hosted Postgres database + authentication + auto-generated API. The Ledger's entire state is already one JSON object, so the backend can be literally **one table with one row per user**. No server code to write or maintain — the browser talks to Supabase directly, and the static files keep living on Netlify.

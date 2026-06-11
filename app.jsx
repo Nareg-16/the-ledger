@@ -112,6 +112,41 @@ function LockScreen({ payload, onUnlock }) {
   );
 }
 
+/* Shown when synced cloud data is encrypted and this device doesn't
+   have the passphrase in memory (e.g. first login on a new phone). */
+function CloudUnlockModal({ payload, onUnlock, onSkip }) {
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!pass) return;
+    setBusy(true); setErr("");
+    try {
+      const s = await decryptJSON(payload, pass);
+      onUnlock(s, pass);
+    } catch (_) {
+      setErr("That's not the passphrase this backup was encrypted with.");
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title="Unlock your cloud data" onClose={onSkip}>
+      <p className="soft" style={{ fontSize: 13.5 }}>
+        Your synced ledger is encrypted with your app-lock passphrase. Enter it to load your data onto this device — it will also turn the app lock on here.
+      </p>
+      <form onSubmit={submit} className="stack gap-12">
+        <input className="input" type="password" autoFocus placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} />
+        {err && <p style={{ color: "var(--neg)", fontSize: 13 }}>{err}</p>}
+        <div className="flex gap-12" style={{ justifyContent: "flex-end" }}>
+          <Btn variant="ghost" type="button" onClick={onSkip}>Not now</Btn>
+          <Btn variant="primary" icon="unlock" type="submit" disabled={busy || !pass}>{busy ? "Unlocking…" : "Unlock"}</Btn>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function App() {
   const [boot, setBoot] = useState(loadBoot);
   const [state, setStateRaw] = useState(boot.mode === "plain" ? boot.state : null);
@@ -120,6 +155,80 @@ function App() {
   const [tab, setTab] = useState("overview");
 
   const setState = setStateRaw;
+
+  // ---- cloud sync (Supabase, optional) ----
+  const [user, setUser] = useState(null);
+  const [syncInfo, setSyncInfo] = useState({ status: window.syncEnabled ? "idle" : "off", at: null, msg: "" });
+  const [cloudLocked, setCloudLocked] = useState(null);   // encrypted cloud payload awaiting passphrase
+  const userRef = useRef(null);
+  const skipPushRef = useRef(false);                      // suppress the push caused by adopting cloud data
+  const firstChangeRef = useRef(true);                    // initial state-set isn't a user edit
+  const lastChangeRef = useRef(parseInt(localStorage.getItem("ledger.updatedAt") || "0", 10) || 0);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  const adoptCloud = (s) => { skipPushRef.current = true; setStateRaw(migrateV1(s)); };
+
+  const pushNow = async () => {
+    if (!window.syncEnabled || !userRef.current || !state) return;
+    setSyncInfo((i) => ({ ...i, status: "syncing", msg: "" }));
+    try {
+      const payload = passRef.current ? await encryptJSON(state, passRef.current) : state;
+      await cloudPush(payload, new Date(lastChangeRef.current || Date.now()).toISOString());
+      setSyncInfo({ status: "synced", at: Date.now(), msg: "" });
+    } catch (e) {
+      setSyncInfo({ status: "error", at: null, msg: e.message || "Sync failed" });
+    }
+  };
+
+  // watch auth state
+  useEffect(() => {
+    if (!window.syncEnabled) return;
+    let active = true;
+    syncGetSession().then((s) => active && setUser(s ? s.user : null));
+    const off = syncOnAuth((s) => setUser(s ? s.user : null));
+    return () => { active = false; off(); };
+  }, []);
+
+  // on login (and once state is unlocked): pull, newer side wins
+  const stateLoaded = !!state;
+  useEffect(() => {
+    if (!window.syncEnabled || !user || !stateLoaded) return;
+    let cancelled = false;
+    (async () => {
+      setSyncInfo((i) => ({ ...i, status: "syncing", msg: "" }));
+      try {
+        const row = await cloudPull();
+        if (cancelled) return;
+        const cloudNewer = row && new Date(row.updated_at).getTime() > lastChangeRef.current;
+        if (cloudNewer) {
+          if (row.data && row.data.enc) {
+            if (passRef.current) {
+              try { adoptCloud(await decryptJSON(row.data, passRef.current)); }
+              catch (_) { setCloudLocked(row.data); }
+            } else setCloudLocked(row.data);
+          } else adoptCloud(row.data);
+          setSyncInfo({ status: "synced", at: Date.now(), msg: "" });
+        } else {
+          await pushNow();      // no cloud row yet, or local is newer
+        }
+      } catch (e) {
+        if (!cancelled) setSyncInfo({ status: "error", at: null, msg: e.message || "Couldn't reach the cloud" });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, stateLoaded]);
+
+  // stamp every local edit + debounce a push when signed in
+  useEffect(() => {
+    if (!state) return;
+    if (firstChangeRef.current) { firstChangeRef.current = false; return; }
+    lastChangeRef.current = Date.now();
+    try { localStorage.setItem("ledger.updatedAt", String(lastChangeRef.current)); } catch (e) {}
+    if (!window.syncEnabled || !userRef.current) return;
+    if (skipPushRef.current) { skipPushRef.current = false; return; }
+    const t = setTimeout(pushNow, 1500);
+    return () => clearTimeout(t);
+  }, [state]);
 
   // persist — encrypted when a lock passphrase is set, plain otherwise
   useEffect(() => {
@@ -250,6 +359,10 @@ function App() {
   const enableLock = (pass) => { passRef.current = pass; setState((s) => ({ ...s })); };   // trigger encrypted re-save
   const disableLock = () => { passRef.current = null; setState((s) => ({ ...s })); };
 
+  // ---- account actions (no-ops when sync isn't configured) ----
+  const signInEmail = (email) => syncSignInEmail(email);
+  const signOutCloud = async () => { await syncSignOut(); setSyncInfo({ status: "idle", at: null, msg: "" }); };
+
   const ctx = {
     state, setState, month, setMonth, tab, go: setTab,
     cur, cur2, theme: state.theme,
@@ -267,6 +380,7 @@ function App() {
     addCategory, deleteCategory, catColor, clearMonth,
     exportJSON, importJSON, exportEncrypted, importEncrypted,
     lockEnabled, enableLock, disableLock,
+    user, syncInfo, syncEnabled: !!window.syncEnabled, syncNow: pushNow, signInEmail, signOutCloud,
   };
 
   const TABS = { overview: OverviewTab, income: IncomeTab, expenses: ExpensesTab, wealth: WealthTab, goals: GoalsTab, analytics: AnalyticsTab, settings: SettingsTab };
@@ -317,6 +431,17 @@ function App() {
             </button>
           ))}
         </nav>
+
+        {cloudLocked && (
+          <CloudUnlockModal payload={cloudLocked}
+            onSkip={() => setCloudLocked(null)}
+            onUnlock={(s, pass) => {
+              passRef.current = pass;          // device adopts the same app lock
+              adoptCloud(s);
+              setCloudLocked(null);
+              setSyncInfo({ status: "synced", at: Date.now(), msg: "" });
+            }} />
+        )}
       </div>
     </AppCtx.Provider>
   );
