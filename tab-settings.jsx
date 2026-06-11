@@ -94,6 +94,8 @@ function SettingsTab() {
         </div>
 
         <div className="stack" style={{ gap: 18 }}>
+          <AccountCard />
+
           <Card>
             <div className="card-head"><h3>Security</h3><span className="sub">your numbers, your eyes only</span></div>
             <div className="between" style={{ background: "var(--inset)", padding: "12px 16px", borderRadius: 12 }}>
@@ -184,6 +186,72 @@ function SettingsTab() {
           }} />
       )}
     </div>
+  );
+}
+
+function AccountCard() {
+  const { user, syncInfo, syncEnabled, syncNow, signInEmail, signOutCloud, lockEnabled } = useApp();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  if (!syncEnabled) {
+    return (
+      <Card>
+        <div className="card-head"><h3>Account & sync</h3><span className="sub">not configured yet</span></div>
+        <Tip>Cloud sync is built in but switched off. To enable it, create a free Supabase project and paste its URL and anon key into <b>supabase-config.js</b> — the full walkthrough is in <b>SUPABASE.md</b>.</Tip>
+      </Card>
+    );
+  }
+
+  const sendLink = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setBusy(true); setErr("");
+    try { await signInEmail(email.trim()); setSent(true); }
+    catch (ex) { setErr(ex.message || "Couldn't send the link — try again."); }
+    setBusy(false);
+  };
+
+  const statusLine = syncInfo.status === "syncing" ? "Syncing…"
+    : syncInfo.status === "synced" && syncInfo.at ? `Synced at ${new Date(syncInfo.at).toLocaleTimeString()}`
+    : syncInfo.status === "error" ? (syncInfo.msg || "Sync error")
+    : "Waiting for changes";
+
+  return (
+    <Card>
+      <div className="card-head"><h3>Account & sync</h3><span className="sub">same ledger on every device</span></div>
+      {user ? (
+        <>
+          <div className="between" style={{ background: "var(--inset)", padding: "12px 16px", borderRadius: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>{user.email}</div>
+              <div className="muted" style={{ fontSize: 12.5, color: syncInfo.status === "error" ? "var(--neg)" : undefined }}>{statusLine}</div>
+            </div>
+            <span className="chip pos"><Icon name="check" size={13} /> Signed in</span>
+          </div>
+          <div className="flex gap-12 wrap mt-16">
+            <Btn size="sm" icon="upload" onClick={syncNow}>Sync now</Btn>
+            <Btn size="sm" variant="ghost" onClick={signOutCloud}>Sign out</Btn>
+          </div>
+          <Tip>{lockEnabled
+            ? <>App lock is on, so the cloud only ever stores your data <b>encrypted</b> — not even the server can read it. Use the same passphrase to unlock on other devices.</>
+            : <>Your ledger syncs automatically a moment after every change. Tip: turn on the <b>app lock</b> below and the cloud copy becomes end-to-end encrypted.</>}</Tip>
+        </>
+      ) : sent ? (
+        <Tip><b>Check your inbox.</b> We sent a sign-in link to <b>{email}</b> — open it on this device and you'll be signed in. (It can take a minute; check spam too.)</Tip>
+      ) : (
+        <>
+          <p className="soft" style={{ fontSize: 13.5, marginBottom: 12 }}>Sign in with just your email — no password. You'll get a one-tap login link, and your ledger follows you to any device.</p>
+          <form onSubmit={sendLink} className="flex gap-12" style={{ alignItems: "flex-end" }}>
+            <Field label="Email"><input className="input" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+            <Btn variant="primary" type="submit" disabled={busy || !email.trim()}>{busy ? "Sending…" : "Send link"}</Btn>
+          </form>
+          {err && <p style={{ color: "var(--neg)", fontSize: 13, marginTop: 8 }}>{err}</p>}
+        </>
+      )}
+    </Card>
   );
 }
 

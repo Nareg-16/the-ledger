@@ -1,0 +1,12 @@
+{
+  "name": "The Ledger — Personal Finance",
+  "short_name": "The Ledger",
+  "description": "Private multi-currency finance tracker with dual AMD/USD totals, gold holdings, and encrypted data.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0d15",
+  "theme_color": "#0a0d15",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
