@@ -1,0 +1,10 @@
+# local tooling
+.claude/
+.thumbnail
+
+# dev-time screenshots of the old design (take fresh ones for the README)
+screenshots/
+
+# OS noise
+Thumbs.db
+.DS_Store
