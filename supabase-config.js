@@ -6,5 +6,5 @@
 
    Leave them empty and the app simply runs without cloud sync.
    ============================================================ */
-window.SUPABASE_URL = "";        // e.g. "https://abcdefgh.supabase.co"
-window.SUPABASE_ANON_KEY = "";   // the long "anon / public" key
+window.SUPABASE_URL = "https://ksekythlgpzeileahjof.supabase.co";
+window.SUPABASE_ANON_KEY = "sb_publishable_T3QoL5ZiVUNFrywqJABKhw_Oma6ram9";
