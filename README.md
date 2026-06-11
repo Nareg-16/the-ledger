@@ -1,8 +1,10 @@
 # The Ledger — personal finance, kept by hand
 
+**Live demo: [the-ledgerbynar.netlify.app](https://the-ledgerbynar.netlify.app)**
+
 A private, multi-currency personal finance organizer. No accounts, no servers — your data lives in your own browser, optionally encrypted.
 
-**Open `index.html` in any browser to use it.** (Internet is needed on first load for fonts, React, and Chart.js from CDNs.)
+Use it at the link above, or open `index.html` locally in any browser. (Internet is needed on first load for fonts, React, and Chart.js from CDNs.)
 
 ## What it does
 
