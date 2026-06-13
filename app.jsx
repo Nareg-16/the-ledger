@@ -19,6 +19,9 @@ function freshState() {
     categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
     goals: [],
     holdings: [],               // savings & assets: cash per currency + gold
+    recurring: [],              // monthly templates that auto-fill each month
+    netWorthHistory: {},        // { "YYYY-M": usdValue } — one snapshot per month
+    onboarded: false,           // first-run welcome shown?
     allocations: [
       { id: uid(), name: "Needs", pct: 50, color: "#6366f1" },
       { id: uid(), name: "Wants", pct: 30, color: "#ec4899" },
@@ -47,10 +50,16 @@ function migrateV1(s) {
     rates: s.rates || { ...DEFAULT_RATES },
     goldPrice: s.goldPrice || DEFAULT_GOLD_PRICE,
     holdings: s.holdings || [],
+    recurring: s.recurring || [],
+    netWorthHistory: s.netWorthHistory || {},
+    onboarded: s.onboarded != null ? s.onboarded : true,   // existing data → not a new user
     goals: (s.goals || []).map(tag),
     months,
   };
 }
+
+const currentMonthKey = monthKeyOf(new Date());
+function monthKeyLE(a, b) { return parseMonthKey(a).getTime() <= parseMonthKey(b).getTime(); }
 
 /* Returns {mode:"plain", state} | {mode:"locked", payload} */
 function loadBoot() {
@@ -258,6 +267,40 @@ function App() {
     if (state) document.documentElement.setAttribute("data-theme", state.theme);
   }, [state && state.theme]);
 
+  // auto-fill recurring expenses into the viewed month (never future months)
+  useEffect(() => {
+    if (!state) return;
+    const recs = state.recurring || [];
+    if (!recs.length || !monthKeyLE(month, currentMonthKey)) return;
+    const m = state.months[month] || { income: [], expenses: [] };
+    const mm = parseMonthKey(month).getMonth() + 1;
+    const dim = new Date(monthYear(month), mm, 0).getDate();
+    const toAdd = [];
+    recs.forEach((t) => {
+      if (t.startMonth && !monthKeyLE(t.startMonth, month)) return;
+      if (t.skip && t.skip[month]) return;
+      if (m.expenses.some((e) => e.rid === t.id)) return;
+      const day = String(clamp(t.dayOfMonth || 1, 1, dim)).padStart(2, "0");
+      toAdd.push({ id: uid(), month, rid: t.id, name: t.name, amount: t.amount, cur: t.cur, cat: t.cat,
+        note: t.note || "", date: `${monthYear(month)}-${String(mm).padStart(2, "0")}-${day}` });
+    });
+    if (toAdd.length) setState((s) => {
+      const cm = s.months[month] || { income: [], expenses: [] };
+      return { ...s, months: { ...s.months, [month]: { ...cm, expenses: [...cm.expenses, ...toAdd] } } };
+    });
+  }, [month, state && state.recurring, state && state.months[month]]);
+
+  // record this month's net worth (in USD) — one rolling snapshot per real month
+  useEffect(() => {
+    if (!state) return;
+    const r = state.rates || DEFAULT_RATES;
+    const gp = state.goldPrice || DEFAULT_GOLD_PRICE;
+    const usd = round2((state.holdings || []).reduce((s, h) => s + (h.type === "gold"
+      ? goldValueUSD(h.grams, h.karat, gp) : convert(h.amount, h.cur, "USD", r)), 0));
+    if ((state.netWorthHistory || {})[currentMonthKey] === usd) return;
+    setState((s) => ({ ...s, netWorthHistory: { ...(s.netWorthHistory || {}), [currentMonthKey]: usd } }));
+  }, [state && state.holdings, state && state.goldPrice, state && state.rates]);
+
   if (boot.mode === "locked" && !state) {
     return <LockScreen payload={boot.payload}
       onUnlock={(s, pass) => { passRef.current = pass; setStateRaw(s); setBoot({ mode: "plain", state: s }); }} />;
@@ -302,7 +345,22 @@ function App() {
   const deleteIncome = (id) => patchMonth((m) => ({ ...m, income: m.income.filter((x) => x.id !== id) }));
   const addExpense = (e) => patchMonth((m) => ({ ...m, expenses: [...m.expenses, { id: uid(), month, ...e }] }));
   const editExpense = (id, patch) => patchMonth((m) => ({ ...m, expenses: m.expenses.map((x) => x.id === id ? { ...x, ...patch } : x) }));
-  const deleteExpense = (id) => patchMonth((m) => ({ ...m, expenses: m.expenses.filter((x) => x.id !== id) }));
+  // deleting a recurring instance just skips it for this month (it won't be regenerated)
+  const deleteExpense = (id) => setState((s) => {
+    const m = s.months[month] || { income: [], expenses: [] };
+    const target = m.expenses.find((e) => e.id === id);
+    let recurring = s.recurring;
+    if (target && target.rid) {
+      recurring = (s.recurring || []).map((t) => t.id === target.rid
+        ? { ...t, skip: { ...(t.skip || {}), [month]: true } } : t);
+    }
+    return { ...s, recurring, months: { ...s.months, [month]: { ...m, expenses: m.expenses.filter((e) => e.id !== id) } } };
+  });
+
+  // recurring templates
+  const addRecurring = (t) => setState((s) => ({ ...s, recurring: [...(s.recurring || []), { startMonth: month, ...t, id: t.id || uid() }] }));
+  const deleteRecurring = (id) => setState((s) => ({ ...s, recurring: (s.recurring || []).filter((t) => t.id !== id) }));
+  const setOnboarded = (v) => setField("onboarded", v);
 
   const addHolding = (h) => setState((s) => ({ ...s, holdings: [...(s.holdings || []), { id: uid(), ...h }] }));
   const editHolding = (id, patch) => setState((s) => ({ ...s, holdings: s.holdings.map((h) => h.id === id ? { ...h, ...patch } : h) }));
@@ -376,6 +434,8 @@ function App() {
     monthData, categories: state.categories, goals: state.goals,
     holdings: state.holdings || [], holdingValue, netWorth,
     addHolding, editHolding, deleteHolding,
+    recurring: state.recurring || [], addRecurring, deleteRecurring,
+    netWorthHistory: state.netWorthHistory || {}, currentMonthKey,
     allocations: state.allocations, budgetMethod: state.budgetMethod,
     totalIncome, totalExpenses, net, savingsRate,
     setField, setCurrency, setCurrency2, toggleTheme,
@@ -386,6 +446,7 @@ function App() {
     exportJSON, importJSON, exportEncrypted, importEncrypted,
     lockEnabled, enableLock, disableLock,
     user, syncInfo, syncEnabled: !!window.syncEnabled, syncNow: pushNow, signInEmail, signOutCloud,
+    onboarded: state.onboarded, setOnboarded,
   };
 
   const TABS = { overview: OverviewTab, income: IncomeTab, expenses: ExpensesTab, wealth: WealthTab, goals: GoalsTab, analytics: AnalyticsTab, settings: SettingsTab };
@@ -463,6 +524,8 @@ function App() {
               setSyncInfo({ status: "synced", at: Date.now(), msg: "" });
             }} />
         )}
+
+        {!state.onboarded && <Onboarding />}
       </div>
     </AppCtx.Provider>
   );

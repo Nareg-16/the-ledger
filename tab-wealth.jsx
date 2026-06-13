@@ -4,9 +4,18 @@
    ============================================================ */
 function WealthTab() {
   const app = useApp();
-  const { cur, cur2, convert, holdings, holdingValue, netWorth, goldPrice, addHolding, editHolding, deleteHolding, go } = app;
+  const { cur, cur2, convert, holdings, holdingValue, netWorth, goldPrice, addHolding, editHolding, deleteHolding, go,
+          netWorthHistory } = app;
 
   const [modal, setModal] = useState(null); // {kind:"cash"|"gold", entry?}
+
+  // net-worth trend: history is stored in USD per month → display currency, last 12
+  const trend = useMemo(() => {
+    return Object.entries(netWorthHistory || {})
+      .sort((a, b) => parseMonthKey(a[0]).getTime() - parseMonthKey(b[0]).getTime())
+      .slice(-12)
+      .map(([mk, usd]) => ({ label: parseMonthKey(mk).toLocaleDateString("en-US", { month: "short" }), value: round2(convert(usd, "USD", cur)) }));
+  }, [netWorthHistory, cur, app.rates]);
 
   const cash = holdings.filter((h) => h.type !== "gold");
   const gold = holdings.filter((h) => h.type === "gold");
@@ -58,6 +67,18 @@ function WealthTab() {
           <div className="meta">{goldGrams ? `${goldGrams.toLocaleString("en-US")} g held · $${goldPrice}/g (24k)` : "none recorded"}</div>
         </div>
       </div>
+
+      {/* net-worth trend */}
+      <Card style={{ marginBottom: 18 }}>
+        <div className="card-head">
+          <div><h3>Net worth over time</h3><span className="sub">one snapshot a month, in {cur}</span></div>
+          {trend.length >= 2 && <span className="chip gold"><Icon name="trend" size={14} />{trend.length} months</span>}
+        </div>
+        {trend.length >= 2
+          ? <LineChart points={trend} cur={cur} />
+          : <EmptyState icon="trend" title="Your trend is just starting"
+              sub="The Ledger records your net worth once a month. Come back next month and the line will begin to grow." />}
+      </Card>
 
       <div className="grid split">
         <div className="stack" style={{ gap: 18 }}>

@@ -23,18 +23,20 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <!-- Supabase cloud sync (optional — inert until supabase-config.js is filled in) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
-  <script src="sync.js"></script>
+  <script src="supabase-config.js?v=3"></script>
+  <script src="sync.js?v=3"></script>
 
-  <!-- app scripts (order matters: lib → tabs → app) -->
-  <script type="text/babel" src="lib.jsx"></script>
-  <script type="text/babel" src="tab-overview.jsx"></script>
-  <script type="text/babel" src="tab-income.jsx"></script>
-  <script type="text/babel" src="tab-expenses.jsx"></script>
-  <script type="text/babel" src="tab-wealth.jsx"></script>
-  <script type="text/babel" src="tab-goals.jsx"></script>
-  <script type="text/babel" src="tab-analytics.jsx"></script>
-  <script type="text/babel" src="tab-settings.jsx"></script>
-  <script type="text/babel" src="app.jsx"></script>
+  <!-- app scripts (order matters: lib → tabs → app).
+       ?v= cache-buster: bump on each release so browsers fetch fresh files. -->
+  <script type="text/babel" src="lib.jsx?v=3"></script>
+  <script type="text/babel" src="tab-overview.jsx?v=3"></script>
+  <script type="text/babel" src="tab-income.jsx?v=3"></script>
+  <script type="text/babel" src="tab-expenses.jsx?v=3"></script>
+  <script type="text/babel" src="tab-wealth.jsx?v=3"></script>
+  <script type="text/babel" src="tab-goals.jsx?v=3"></script>
+  <script type="text/babel" src="tab-analytics.jsx?v=3"></script>
+  <script type="text/babel" src="tab-settings.jsx?v=3"></script>
+  <script type="text/babel" src="onboarding.jsx?v=3"></script>
+  <script type="text/babel" src="app.jsx?v=3"></script>
 </body>
 </html>

@@ -3,7 +3,8 @@
    ============================================================ */
 function ExpensesTab() {
   const app = useApp();
-  const { cur, inCur, monthData, categories, totalExpenses, addExpense, editExpense, deleteExpense, catColor, month } = app;
+  const { cur, inCur, monthData, categories, totalExpenses, addExpense, editExpense, deleteExpense, catColor, month,
+          recurring, addRecurring, deleteRecurring } = app;
 
   const today = `${monthYear(month)}-${String(parseMonthKey(month).getMonth() + 1).padStart(2, "0")}-01`;
   const [desc, setDesc] = useState("");
@@ -12,17 +13,27 @@ function ExpensesTab() {
   const [date, setDate] = useState(today);
   const [note, setNote] = useState("");
   const [entryCur, setEntryCur] = useState(cur);
+  const [repeat, setRepeat] = useState(false);
 
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState({ key: "date", dir: "desc" });
+  const [showRecurring, setShowRecurring] = useState(false);
 
   const submit = (e) => {
     e.preventDefault();
     const amt = parseFloat(amount);
     if (!desc.trim() || !(amt > 0)) return;
-    addExpense({ name: desc.trim(), amount: round2(amt), cur: entryCur, cat, date, note: note.trim() });
-    setDesc(""); setAmount(""); setNote("");
+    const base = { name: desc.trim(), amount: round2(amt), cur: entryCur, cat, note: note.trim() };
+    if (repeat) {
+      const rid = uid();
+      const dayOfMonth = parseInt(date.slice(-2), 10) || 1;
+      addExpense({ ...base, date, rid });
+      addRecurring({ id: rid, ...base, dayOfMonth });
+    } else {
+      addExpense({ ...base, date });
+    }
+    setDesc(""); setAmount(""); setNote(""); setRepeat(false);
   };
 
   const rows = useMemo(() => {
@@ -72,6 +83,18 @@ function ExpensesTab() {
         <div style={{ marginTop: 12 }}>
           <Field label="Note (optional)"><input className="input" placeholder="Add a quick memo…" value={note} onChange={(e) => setNote(e.target.value)} /></Field>
         </div>
+        <div className="between wrap" style={{ marginTop: 12, gap: 10 }}>
+          <label className="check-row">
+            <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
+            <Icon name="repeat" size={15} /> Repeat every month
+          </label>
+          {recurring.length > 0 && (
+            <button className="btn ghost sm" type="button" onClick={() => setShowRecurring(true)}>
+              <Icon name="repeat" size={15} />{recurring.length} recurring
+            </button>
+          )}
+        </div>
+        {repeat && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>This expense will be added automatically on day {parseInt(date.slice(-2), 10) || 1} of every month. Delete an instance to skip just that month.</p>}
       </Card>
 
       <Card className="flush">
@@ -107,7 +130,10 @@ function ExpensesTab() {
               {rows.map((e) => (
                 <tr key={e.id}>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{e.name}</div>
+                    <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                      {e.name}
+                      {e.rid && <span className="recur-tag" title="Repeats every month"><Icon name="repeat" size={12} /></span>}
+                    </div>
                     {e.note && <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{e.note}</div>}
                   </td>
                   <td><CatCell cat={e.cat} categories={categories} catColor={catColor} onChange={(c) => editExpense(e.id, { cat: c })} /></td>
@@ -124,6 +150,23 @@ function ExpensesTab() {
           <EmptyState icon="expenses" title="No expenses logged" sub="Use the form above to record your first expense of the month." />
         )}
       </Card>
+
+      {showRecurring && (
+        <Modal title="Recurring expenses" onClose={() => setShowRecurring(false)}>
+          <p className="soft" style={{ fontSize: 13.5 }}>These are added automatically at the start of every month. Stopping one leaves past entries untouched.</p>
+          <div className="stack" style={{ gap: 8 }}>
+            {recurring.map((t) => (
+              <div className="between" key={t.id} style={{ background: "var(--inset)", padding: "10px 14px", borderRadius: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{t.name} <span className="chip gold" style={{ marginLeft: 4 }}>{t.cat}</span></div>
+                  <div className="muted mono" style={{ fontSize: 12.5 }}>{fmt(t.amount, t.cur)} · day {t.dayOfMonth || 1}</div>
+                </div>
+                <Btn size="sm" variant="ghost" icon="trash" onClick={() => deleteRecurring(t.id)}>Stop</Btn>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

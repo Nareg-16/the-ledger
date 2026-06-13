@@ -206,6 +206,8 @@ function Icon({ name, size = 20, stroke = 1.7, fill = "none", style }) {
     share:    <><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="m8.4 10.8 7.2-3.6M8.4 13.2l7.2 3.6"/></>,
     coins:    <><ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v6.5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V5.5"/><path d="M4.5 12v6.5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V12"/></>,
     more:     <><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></>,
+    repeat:   <><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></>,
+    trend:    <><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
@@ -470,6 +472,54 @@ function BarChart({ groups }) {
   return <div style={{ height: 240, position: "relative" }}><canvas ref={ref} /></div>;
 }
 
+function LineChart({ points, cur }) {
+  // points: [{label, value}] — value in display currency
+  const ref = useRef(null);
+  const chart = useRef(null);
+  useThemeTick();
+  useEffect(() => {
+    if (!ref.current) return;
+    if (chart.current) chart.current.destroy();
+    const css = (v) => getComputedStyle(document.body).getPropertyValue(v).trim();
+    const ink = css("--ink"), line = css("--line"), faint = css("--ink-faint"), accent = css("--gold");
+    const ctx = ref.current.getContext("2d");
+    const grad = ctx.createLinearGradient(0, 0, 0, 220);
+    grad.addColorStop(0, accent + "44");
+    grad.addColorStop(1, accent + "00");
+    chart.current = new Chart(ref.current, {
+      type: "line",
+      data: {
+        labels: points.map((p) => p.label),
+        datasets: [{
+          data: points.map((p) => p.value),
+          borderColor: accent, borderWidth: 2.5,
+          backgroundColor: grad, fill: true,
+          pointBackgroundColor: accent, pointBorderColor: css("--surface"), pointBorderWidth: 2,
+          pointRadius: points.length > 18 ? 0 : 4, pointHoverRadius: 6,
+          tension: 0.32,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700, easing: "easeOutQuart" },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: ink, padding: 10, cornerRadius: 8, displayColors: false,
+            callbacks: { label: (c) => fmt(c.raw, cur) },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, border: { color: line }, ticks: { color: faint, font: { family: "Inter", size: 11, weight: 600 }, maxRotation: 0, autoSkipPadding: 12 } },
+          y: { grid: { color: line }, border: { display: false }, ticks: { color: faint, font: { family: "JetBrains Mono", size: 10 }, maxTicksLimit: 5, callback: (v) => fmt(v, cur, { compact: true }) } },
+        },
+      },
+    });
+    return () => chart.current && chart.current.destroy();
+  }, [JSON.stringify(points), cur]);
+  return <div style={{ height: 220, position: "relative" }}><canvas ref={ref} /></div>;
+}
+
 /* Custom HTML legend rows */
 function Legend({ items, cur }) {
   const sum = items.reduce((a, b) => a + b.value, 0) || 1;
@@ -496,5 +546,5 @@ Object.assign(window, {
   uid, clamp, round2, fmt, pct, monthKeyOf, parseMonthKey, monthLabel, monthYear, shiftMonth,
   AppCtx, useApp, Icon, Card, Btn, Field, MoneyInput, MoneyInputMulti, Dual, NativeAmt,
   SelectBox, CurrencySelect, Badge, ProgressBar,
-  Tip, EmptyState, Modal, SwatchPicker, DonutChart, BarChart, Legend,
+  Tip, EmptyState, Modal, SwatchPicker, DonutChart, BarChart, LineChart, Legend,
 });

@@ -556,3 +556,50 @@ textarea.input { height: auto; padding: 11px 13px; resize: vertical; min-height:
   .dual.xl .d1 { font-size: 30px; }
   .nw-grid { flex-direction: column; }
 }
+
+/* On phones the page header stacks; the big "total" block (income /
+   wealth pages) becomes a full-width, left-aligned row instead of a
+   narrow right-aligned box floating mid-screen. */
+@media (max-width: 860px) {
+  .page-head { flex-direction: column; align-items: stretch; gap: 14px; }
+  .page-head .right { text-align: left; width: 100%; }
+  .page-head .right .dual.right { align-items: flex-start; }
+}
+
+/* ===========================================================
+   ONBOARDING
+   =========================================================== */
+.ob-scrim {
+  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center;
+  padding: 20px; background: rgba(8, 10, 20, 0.62); backdrop-filter: blur(6px);
+  animation: fade 0.25s ease;
+}
+.ob-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 22px;
+  box-shadow: var(--shadow-lg); width: 100%; max-width: 460px; padding: 30px 30px 26px;
+  text-align: center;
+}
+.ob-dots { display: flex; gap: 7px; justify-content: center; margin-bottom: 22px; }
+.ob-dots span { width: 26px; height: 5px; border-radius: 99px; background: var(--inset); transition: 0.25s; }
+.ob-dots span.on { background: var(--gold); width: 34px; }
+.ob-dots span.done { background: color-mix(in srgb, var(--gold) 45%, transparent); }
+.ob-illus {
+  width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px;
+  display: grid; place-items: center; background: var(--gold-soft); color: var(--gold-deep);
+}
+.ob-illus.pos { background: var(--pos-soft); color: var(--pos); }
+.ob-illus.gold { background: rgba(245, 158, 11, 0.14); color: #d97706; }
+.ob-step h2 { font-size: 25px; margin-bottom: 8px; }
+.ob-lede { color: var(--ink-soft); font-size: 14.5px; max-width: 40ch; margin: 0 auto 22px; line-height: 1.5; }
+.ob-hint { color: var(--ink-faint); font-size: 12.5px; margin-top: 14px; }
+.ob-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 26px; }
+.ob-actions .btn { min-width: 130px; }
+.ob-skip { border: 0; background: transparent; color: var(--ink-faint); font-weight: 600; font-size: 13.5px; padding: 8px; }
+.ob-skip:hover { color: var(--ink-soft); }
+@media (max-width: 480px) { .ob-card { padding: 24px 20px; } .ob-step h2 { font-size: 22px; } }
+
+/* recurring expenses */
+.check-row { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer; user-select: none; }
+.check-row input { width: 17px; height: 17px; accent-color: var(--gold); cursor: pointer; }
+.check-row svg { color: var(--gold-deep); }
+.recur-tag { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 6px; background: var(--gold-soft); color: var(--gold-deep); flex: none; }
