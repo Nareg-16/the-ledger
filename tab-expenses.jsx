@@ -118,6 +118,7 @@ function ExpensesTab() {
         </div>
 
         {rows.length ? (
+          <div className="table-wrap">
           <table className="tbl">
             <thead><tr>
               <th className={`sortable ${sort.key === "name" ? "active" : ""}`} onClick={() => toggleSort("name")}>Description {arrow("name")}</th>
@@ -144,6 +145,7 @@ function ExpensesTab() {
               ))}
             </tbody>
           </table>
+          </div>
         ) : monthData.expenses.length ? (
           <EmptyState icon="search" title="No matches" sub="Try a different search or category filter." />
         ) : (

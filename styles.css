@@ -200,8 +200,10 @@ a { color: var(--gold-deep); }
 .cols-2 { grid-template-columns: repeat(2, 1fr); }
 .span-2 { grid-column: span 2; }
 .span-3 { grid-column: span 3; }
-/* main + side panel split — stacks on smaller screens */
-.split { grid-template-columns: 1.2fr 1fr; align-items: start; }
+/* main + side panel split — stacks on smaller screens.
+   minmax(0,…) lets a track shrink below its content's natural width,
+   so a wide table inside can't stretch the column (and the page). */
+.split { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
 /* donut chart + legend inside a card — stacks on narrow cards */
 .donut-legend { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 16px; }
 
@@ -292,6 +294,10 @@ textarea.input { height: auto; padding: 11px 13px; resize: vertical; min-height:
 /* ===========================================================
    TABLES
    =========================================================== */
+/* Horizontal scroll container: a wide table scrolls inside its card
+   instead of stretching the page. Keeps a readable min-width on phones. */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap .tbl { min-width: 460px; }
 .tbl { width: 100%; border-collapse: collapse; }
 .tbl th {
   text-align: left; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -443,7 +449,7 @@ textarea.input { height: auto; padding: 11px 13px; resize: vertical; min-height:
   .span-3 { grid-column: span 2; }
 }
 @media (max-width: 980px) {
-  .split { grid-template-columns: 1fr; }
+  .split { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 860px) {
   .sidenav { display: none; }

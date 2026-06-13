@@ -89,6 +89,7 @@ function WealthTab() {
               <Btn size="sm" variant="primary" icon="plus" onClick={() => setModal({ kind: "cash" })}>Add savings</Btn>
             </div>
             {cash.length ? (
+              <div className="table-wrap">
               <table className="tbl">
                 <thead><tr><th>Name</th><th>Currency</th><th className="right">Amount</th><th className="right">In {cur}</th><th></th></tr></thead>
                 <tbody>
@@ -110,6 +111,7 @@ function WealthTab() {
                   <td className="num" style={{ paddingTop: 14 }}><Dual value={cashTotal} size="sm" className="right" /></td><td></td>
                 </tr></tfoot>
               </table>
+              </div>
             ) : <EmptyState icon="wallet" title="No savings recorded"
                   sub="Add each pot of money you hold — ֏700,000 under the mattress, $1,000 in the bank — in its own currency."
                   action={<Btn variant="primary" size="sm" icon="plus" onClick={() => setModal({ kind: "cash" })}>Add savings</Btn>} />}
@@ -122,6 +124,7 @@ function WealthTab() {
               <Btn size="sm" variant="primary" icon="plus" onClick={() => setModal({ kind: "gold" })}>Add gold</Btn>
             </div>
             {gold.length ? (
+              <div className="table-wrap">
               <table className="tbl">
                 <thead><tr><th>Item</th><th>Karat</th><th className="right">Weight</th><th className="right">In {cur}</th><th></th></tr></thead>
                 <tbody>
@@ -143,6 +146,7 @@ function WealthTab() {
                   <td className="num" style={{ paddingTop: 14 }}><Dual value={goldTotal} size="sm" className="right" /></td><td></td>
                 </tr></tfoot>
               </table>
+              </div>
             ) : <EmptyState icon="gold" title="No gold recorded"
                   sub="Track coins, bars, or jewellery by weight and karat. Value follows the gold price you set."
                   action={<Btn variant="primary" size="sm" icon="plus" onClick={() => setModal({ kind: "gold" })}>Add gold</Btn>} />}

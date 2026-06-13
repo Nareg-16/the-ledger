@@ -72,6 +72,7 @@ function IncomeTab() {
               <span className="sub muted">{monthData.income.length} total</span>
             </div>
             {monthData.income.length ? (
+              <div className="table-wrap">
               <table className="tbl">
                 <thead><tr><th>Source</th><th>Frequency</th><th className="right">Amount</th><th className="right">Monthly</th><th></th></tr></thead>
                 <tbody>
@@ -91,6 +92,7 @@ function IncomeTab() {
                 <tfoot><tr><td colSpan="3" style={{ fontWeight: 700, paddingTop: 14 }}>Total monthly</td>
                   <td className="num" style={{ paddingTop: 14 }}><Dual value={totalIncome} size="sm" tone="var(--pos)" className="right" /></td><td></td></tr></tfoot>
               </table>
+              </div>
             ) : <EmptyState icon="income" title="No income yet" sub="Add your salary or any other source above to get started." />}
           </Card>
         </div>
